@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechNova Solutions - Migración AWS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* --- 1. BASE & SETUP --- */
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: #d1d5db;
+            display: grid;
+            gap: 40px;
+            grid-template-columns: 1fr;
+            margin: 0;
+            min-height: 100vh;
+            padding: 40px 0;
+            place-items: center;
+        }
+
+        .slide-container {
+            align-items: center;
+            background-color: #F8F9FA;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            font-family: 'DM Sans', sans-serif;
+            height: 720px;
+            justify-content: flex-start;
+            overflow: hidden;
+            padding: 40px 50px;
+            position: relative;
+            width: 1280px;
+        }
+
+        /* Background Design Elements */
+        .bg-blob-1 {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(72,169,166,0.12) 0%, rgba(255,255,255,0) 70%);
+            top: -250px;
+            right: -250px;
+            z-index: 0;
+            border-radius: 50%;
+        }
+
+        .bg-blob-2 {
+            position: absolute;
+            width: 900px;
+            height: 900px;
+            background: radial-gradient(circle, rgba(11,19,43,0.06) 0%, rgba(255,255,255,0) 70%);
+            bottom: -350px;
+            left: -250px;
+            z-index: 0;
+            border-radius: 50%;
+        }
+
+        .slide-container > * { position: relative; z-index: 1; }
+
+        /* Dark Theme Overrides */
+        .dark-slide { background-color: #0B132B; }
+        .dark-slide .bg-blob-1 { background: radial-gradient(circle, rgba(72,169,166,0.15) 0%, rgba(11,19,43,0) 70%); }
+        .dark-slide .bg-blob-2 { background: radial-gradient(circle, rgba(243,240,223,0.05) 0%, rgba(11,19,43,0) 70%); }
+
+        /* --- 2. TYPOGRAPHY --- */
+        h1, h2, h3, h4 { font-family: 'Merriweather', serif; margin: 0; }
+
+        /* Colors */
+        .slide-container h1, .slide-container h2, .slide-container h3 { color: #0B132B; }
+        .slide-container p, .slide-container li, .slide-container .subtitle { color: #1C2541; font-size: 18px; line-height: 1.5; }
+        .dark-slide h1, .dark-slide h2, .dark-slide h3 { color: #F3F0DF; }
+        .dark-slide p, .dark-slide li, .dark-slide .subtitle { color: #E0E1DD; }
+
+        /* Sizing */
+        .slide-container h1 { font-size: 70px; font-weight: 900; line-height: 1.15; letter-spacing: -1px; }
+        .slide-container .slide-title { font-size: 40px; font-weight: 700; margin-bottom: 20px; text-align: left; width: 100%; border-bottom: 3px solid #48A9A6; padding-bottom: 10px; }
+        .slide-container h3 { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+        .slide-container .subtitle { font-size: 24px; font-weight: 400; margin-top: 15px; color: #48A9A6; }
+
+        .content-area { align-items: flex-start; display: flex; flex-direction: column; flex-grow: 1; justify-content: center; width: 100%; height: calc(100% - 70px); }
+
+        /* --- 3. LAYOUTS --- */
+        .title-layout { text-align: center; max-width: 950px; margin: auto; }
+        .title-layout hr { border: 0; height: 4px; background: #48A9A6; width: 150px; margin: 35px auto; }
+        .title-meta { font-family: 'DM Sans'; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; color: #48A9A6; margin-bottom: 20px; display: block; font-weight: 700;}
+
+        .section-title-layout { text-align: center; margin: auto; max-width: 1000px;}
+        .section-title-layout h2 { font-size: 60px; margin-bottom: 20px; }
+        .section-title-layout hr { background-color: #48A9A6; border: none; height: 5px; margin: 30px auto; width: 120px; }
+        .section-title-layout p { font-size: 24px; line-height: 1.7; }
+
+        /* CAPTURAS GENERALES */
+        .two-column { display: grid; grid-template-columns: 42% 58%; gap: 30px; width: 100%; align-items: center; height: 100%; padding-bottom: 10px;}
+        .two-column ul { list-style: none; padding-left: 0; margin: 0; }
+        .two-column li { margin-bottom: 20px; position: relative; padding-left: 35px; font-size: 18px; line-height: 1.5;}
+        .two-column li i { position: absolute; left: 0; top: 4px; color: #48A9A6; font-size: 20px; }
+        .text-column { display: flex; flex-direction: column; justify-content: center; }
+
+        .image-column { height: 100%; display: flex; align-items: center; justify-content: center; width: 100%; }
+
+        /* FIX DE COLORES PARA LAS CAPTURAS Y CONTENEDORES DE IMÁGENES */
+        .image-wrapper { border-radius: 8px; height: 480px; width: 100%; position: relative; box-shadow: 0 8px 25px rgba(0,0,0,0.1); border: 2px solid rgba(72,169,166,0.4); overflow: hidden; background-color: #E8EDF2; display: flex; }
+        .dark-slide .image-wrapper { background-color: #162238; border-color: rgba(72,169,166,0.6); }
+        .image-wrapper img { height: 100%; width: 100%; object-fit: contain; object-position: center; }
+
+        /* FIX DE COLORES PARA DIAGRAMAS */
+        .diagram-layout { display: grid; grid-template-columns: 38% 62%; gap: 40px; width: 100%; align-items: center; height: 100%; padding-bottom: 10px;}
+        .diagram-layout ul { list-style: none; padding-left: 0; margin: 0; }
+        .diagram-layout li { margin-bottom: 20px; position: relative; padding-left: 35px; font-size: 18px; line-height: 1.5;}
+        .diagram-layout li i { position: absolute; left: 0; top: 4px; color: #48A9A6; font-size: 20px; }
+
+        .diagram-wrapper { border-radius: 8px; height: 500px; width: 100%; position: relative; box-shadow: 0 8px 25px rgba(0,0,0,0.15); background-color: #E8EDF2; border: 2px solid rgba(72,169,166,0.4); display: flex; align-items: center; justify-content: center; overflow: hidden;}
+        .dark-slide .diagram-wrapper { background-color: #162238; border-color: rgba(72,169,166,0.6); }
+
+        .diagram-wrapper img { max-height: 100%; max-width: 100%; object-fit: contain; padding: 15px;}
+
+        /* TILES */
+        .tiled-content { display: flex; gap: 40px; width: 100%; justify-content: space-between; align-items: center; height: 100%; padding: 10px 0;}
+        .tile { background-color: #FFFFFF; border-radius: 12px; padding: 50px 40px; flex: 1; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid #48A9A6; display: flex; flex-direction: column; justify-content: flex-start; min-height: 450px;}
+        .dark-slide .tile { background-color: #1C2541; box-shadow: 0 10px 30px rgba(0,0,0,0.4); border-top: 6px solid #48A9A6; }
+        .tile .icon { color: #48A9A6; font-size: 60px; margin-bottom: 30px; }
+        .tile h3 { font-size: 26px; margin-bottom: 20px; color: #0B132B; }
+        .dark-slide .tile h3 { color: #F3F0DF; }
+        .tile p { font-size: 18px; margin-top: 0; line-height: 1.6; color: #1C2541; }
+        .dark-slide .tile p { color: #E0E1DD; }
+
+        /* KPI NUMBERS */
+        .highlight-numbers-layout { display: flex; justify-content: center; align-items: stretch; gap: 40px; height: 100%; width: 100%; padding: 30px 0;}
+        .number-block { text-align: center; flex: 1; background: #FFFFFF; padding: 40px 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(72,169,166,0.2); display: flex; flex-direction: column; justify-content: center;}
+        .dark-slide .number-block { background: #1C2541; }
+        .number { color: #48A9A6; font-size: 75px; font-weight: 900; font-family: 'Merriweather', serif; line-height: 1; margin-bottom: 15px;}
+        .number-label { font-size: 18px; font-weight: 700; color: #0B132B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;}
+        .dark-slide .number-label { color: #F3F0DF; }
+        .number-desc { font-size: 15px; margin-top: auto; }
+
+        /* QUOTE */
+        .quote-layout { margin: auto; text-align: center; width: 90%; max-width: 1000px;}
+        .quote-layout blockquote { color: #F3F0DF; font-size: 40px; font-weight: 700; font-family: 'Merriweather', serif; line-height: 1.4; margin: 0 0 40px 0; position: relative; z-index: 2;}
+        .quote-layout blockquote::before { content: '\201C'; font-size: 150px; color: rgba(72,169,166,0.2); position: absolute; left: -50px; top: -50px; line-height: 1; font-family: sans-serif; z-index: -1;}
+        .quote-layout cite { color: #48A9A6; font-size: 22px; font-style: normal; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;}
+        .quote-sub { display: block; font-size: 16px; color: #E0E1DD; margin-top: 15px;}
+
+        /* CHART */
+        .chart-internal-wrapper { width: 100%; height: 100%; padding: 20px 30px; display: flex; flex-direction: column;}
+        .chart-kpi-row { display: flex; justify-content: space-around; margin-bottom: 15px; padding: 10px; border-bottom: 1px solid rgba(72,169,166,0.2); }
+        .chart-kpi { text-align: center; }
+        .chart-kpi-value { font-size: 28px; font-weight: 700; color: #dc3545; line-height: 1; }
+        .chart-kpi-value.warning { color: #fd7e14; }
+        .dark-slide .chart-kpi-value.dark { color: #F3F0DF; }
+        .chart-kpi-label { font-size: 12px; color: #48A9A6; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; font-weight: 700; }
+        .canvas-wrapper { flex-grow: 1; position: relative; width: 100%; margin-top: 10px;}
+
+        /* --- 4. PRINT STYLES (EL CORAZÓN DE LA EXPORTACIÓN) --- */
+        @media print {
+            @page {
+                size: 1280px 720px;
+                margin: 0;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            html, body {
+                width: 1280px !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: #0B132B !important;
+            }
+            body { display: block !important; }
+            .slide-container {
+                width: 1280px !important;
+                height: 720px !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                break-inside: avoid !important;
+                position: relative !important;
+                display: flex !important;
+                visibility: visible !important;
+            }
+            /* Forzar visualización de imágenes y blobs */
+            img {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                max-width: 100% !important;
+                content-visibility: visible !important;
+            }
+            .bg-blob-1, .bg-blob-2 { display: block !important; opacity: 1 !important; }
+            .canvas-wrapper canvas { max-width: 100% !important; height: auto !important; }
+
+            /* Ajuste específico para Slide 10 en PDF (Doble imagen) */
+            .image-wrapper-dual {
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100% !important;
+                min-height: 450px !important;
+            }
+            .image-wrapper-dual img {
+                height: 48% !important;
+                margin-bottom: 5px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide-container dark-slide" id="slide1">
+    <div class="bg-blob-1"></div>
+    <div class="bg-blob-2"></div>
+    <div class="title-layout">
+        <span class="title-meta">TechNova Solutions</span>
+        <h1>Propuesta de Migración Cloud y Validación de PoC</h1>
+        <hr>
+        <p class="subtitle">Evaluación de Viabilidad Técnica y Económica en AWS</p>
+        <p style="margin-top: 60px; font-size: 16px; color: #8A9AAB;">Autor: Matías Fernández (20099194k) | Sección: ARY1101</p>
+    </div>
+</div>
+
+<!-- SLIDE 2: Executive Summary -->
+<div class="slide-container" id="slide2">
+    <div class="bg-blob-1"></div>
+    <div class="section-title-layout">
+        <h2>Resumen Ejecutivo</h2>
+        <hr>
+        <p>
+            El directorio ha solicitado evaluar la viabilidad de migrar nuestra infraestructura on-premise a la nube. Hemos diseñado, desplegado y validado una Prueba de Concepto (PoC) en AWS que demuestra que podemos erradicar las caídas de servicio, aislar nuestras cargas de trabajo y optimizar los costos migrando hacia un modelo operativo escalable.
+        </p>
+    </div>
+</div>
+
+<!-- SLIDE 3: Business Problem (Chart.js) -->
+<div class="slide-container dark-slide" id="slide3">
+    <div class="bg-blob-1"></div>
+    <h2 class="slide-title">TechNova: El Desafío del Crecimiento</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="text-column">
+                <ul>
+                    <li><i class="fa-solid fa-chart-line"></i> <strong>Contexto de Crecimiento:</strong> E-commerce 100% online con un crecimiento explosivo del 60% en ventas los últimos 18 meses, superando la capacidad del hardware base.</li>
+                    <li><i class="fa-solid fa-server"></i> <strong>Limitación On-Premise:</strong> Operación basada en servidores VMware en datacenter arrendado. El equipo de TI está sobrepasado administrando hardware manualmente.</li>
+                    <li><i class="fa-solid fa-triangle-exclamation"></i> <strong>Impacto Financiero:</strong> En el último año sufrimos 9 eventos de caída sumando 14 horas de downtime (caídas de 45m a 3h en picos de demanda).</li>
+                    <li><i class="fa-solid fa-money-bill-trend-down"></i> <strong>Pérdida Directa:</strong> Cada hora inoperativa cuesta un 3% de las ventas diarias promedio no recuperables.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="image-wrapper" style="border-top: 5px solid #dc3545; display: flex; flex-direction: column; background-color: #1C2541;">
+                    <div class="chart-internal-wrapper">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h3 style="color: #F3F0DF; font-size: 24px; margin: 0;">Impacto del Downtime</h3>
+                            <p style="color: #8A9AAB; font-size: 14px; margin-top: 5px;">Análisis de caídas en el último año</p>
+                        </div>
+                        <div class="chart-kpi-row">
+                            <div class="chart-kpi">
+                                <div class="chart-kpi-value dark" style="color: #F3F0DF;">9</div>
+                                <div class="chart-kpi-label">Eventos</div>
+                            </div>
+                            <div class="chart-kpi">
+                                <div class="chart-kpi-value warning">14h</div>
+                                <div class="chart-kpi-label">Downtime Total</div>
+                            </div>
+                            <div class="chart-kpi">
+                                <div class="chart-kpi-value" style="color: #dc3545;">42%</div>
+                                <div class="chart-kpi-label">Pérdida Acumulada</div>
+                            </div>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="downtimeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 4: Topología AS-IS -->
+<div class="slide-container" id="slide4">
+    <div class="bg-blob-2"></div>
+    <h2 class="slide-title">Topología Actual (AS-IS): El Cuello de Botella</h2>
+    <div class="content-area">
+        <div class="diagram-layout">
+            <div class="text-column">
+                <h3 style="color: #dc3545; font-size: 20px; margin-bottom: 20px;"><i class="fa-solid fa-bug"></i> Análisis de Riesgos</h3>
+                <ul>
+                    <li><i class="fa-solid fa-1"></i> <strong>Single Point of Failure:</strong> Toda la arquitectura descansa en un solo servidor físico/VM. Si los recursos se saturan, la tienda completa cae.</li>
+                    <li><i class="fa-solid fa-2"></i> <strong>Falta de Balanceo:</strong> Todo el tráfico de Internet golpea directamente el servidor, sin mecanismos para distribuir la carga.</li>
+                    <li><i class="fa-solid fa-3"></i> <strong>Riesgo de Datos:</strong> La base de datos MySQL cohabita en la misma máquina que los componentes expuestos a Internet.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="diagram-wrapper">
+                    <img src="Diagrama_Base.png" alt="Topología AS-IS en VMware">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 5: Value Proposition -->
+<div class="slide-container dark-slide" id="slide5">
+    <div class="bg-blob-1"></div>
+    <h2 class="slide-title">Propuesta de Valor Cloud</h2>
+    <div class="content-area">
+        <div class="tiled-content">
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <h3>Resiliencia (ALB)</h3>
+                <p>Desacoplamos el monolito. El Application Load Balancer absorbe los picos de tráfico de Black Friday y distribuye las cargas inteligentemente.</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-database"></i></div>
+                <h3>Operación (RDS)</h3>
+                <p>Delegamos la administración de la base de datos a AWS. El equipo TI deja de apagar incendios y administra servicios PaaS.</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-lock"></i></div>
+                <h3>Seguridad (VPC)</h3>
+                <p>Aislamiento de red total. La base de datos y los servidores viven en subredes privadas, invisibles y blindados frente al internet público.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 6: Architecture TO-BE (PoC) -->
+<div class="slide-container" id="slide6">
+    <div class="bg-blob-2"></div>
+    <h2 class="slide-title">Arquitectura PoC Validada (TO-BE Inicial)</h2>
+    <div class="content-area">
+        <div class="diagram-layout">
+            <div class="text-column">
+                <h3 style="color: #48A9A6; font-size: 20px; margin-bottom: 20px;"><i class="fa-solid fa-shield-halved"></i> Migración Aprobada</h3>
+                <ul>
+                    <li><i class="fa-solid fa-check"></i> <strong>Capa Perimetral:</strong> El Balanceador de Carga (ALB) es el único punto de contacto con Internet.</li>
+                    <li><i class="fa-solid fa-check"></i> <strong>Capa de Cómputo:</strong> Los contenedores corren en una instancia EC2 privada, oculta tras un NAT Gateway.</li>
+                    <li><i class="fa-solid fa-check"></i> <strong>Capa de Datos:</strong> Servicio gestionado Amazon RDS para MySQL, restringido exclusivamente al Security Group del EC2.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="diagram-wrapper">
+                    <img src="Diagrama_PoC.svg" alt="Arquitectura Prueba de Concepto">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 7: Network Evidence -->
+<div class="slide-container dark-slide" id="slide7">
+    <h2 class="slide-title">Evidencia: Seguridad Perimetral y Redes</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="text-column">
+                <ul>
+                    <li><i class="fa-solid fa-network-wired"></i> <strong>Segmentación VPC:</strong> Aislamiento estricto entre subredes públicas (ALB/NAT) y privadas (App/DB).</li>
+                    <li><i class="fa-solid fa-eye-slash"></i> <strong>Instancias Ocultas:</strong> El EC2 fue desplegado <strong>sin IP pública</strong>.</li>
+                    <li><i class="fa-solid fa-shield-halved"></i> <strong>Security Groups:</strong> El firewall de la instancia bloquea todo el exterior, aceptando solo el tráfico del ALB.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="image-wrapper">
+                    <img src="EC2.png" alt="Captura Configuración EC2">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 8: Compute Evidence -->
+<div class="slide-container" id="slide8">
+    <h2 class="slide-title">Evidencia: Cómputo y Base de Datos (RDS)</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="text-column">
+                <ul>
+                    <li><i class="fa-solid fa-terminal"></i> <strong>Zero-Trust:</strong> Puerto SSH (22) cerrado. Administración vía AWS Systems Manager (SSM).</li>
+                    <li><i class="fa-solid fa-database"></i> <strong>Datos Seguros:</strong> Amazon RDS MySQL con acceso público desactivado y restringido por SG.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="image-wrapper">
+                    <img src="rds_conn.png" alt="Captura Conexión RDS">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 9: Load Balancer Evidence -->
+<div class="slide-container dark-slide" id="slide9">
+    <h2 class="slide-title">Evidencia: Balanceo y Enrutamiento (ALB)</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="text-column">
+                <ul>
+                    <li><i class="fa-solid fa-route"></i> <strong>Path-Based Routing:</strong> El ALB actúa como proxy inverso y punto de entrada único.</li>
+                    <li><i class="fa-solid fa-check-circle"></i> <strong>Target Groups:</strong> El ALB deriva tráfico solo si los contenedores reportan estado 'Healthy'.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="image-wrapper">
+                    <img src="Listener.png" alt="Captura Reglas ALB">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 10: Platform Validation -->
+<div class="slide-container" id="slide10">
+    <h2 class="slide-title">Validación: La Plataforma Operativa</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="text-column">
+                <ul>
+                    <li><i class="fa-solid fa-globe"></i> <strong>Disponibilidad Web:</strong> El eCommerce opera fluido a través del DNS del ALB.</li>
+                    <li><i class="fa-solid fa-plug-circle-check"></i> <strong>Integración DB:</strong> Indicadores de "DB conectada" demuestran comunicación Backend &rarr; RDS.</li>
+                    <li><i class="fa-solid fa-id-card-clip"></i> <strong>Autoría Verificada:</strong> Despliegue automatizado validado con mis datos personales.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <!-- ID/Clase específica para forzar visualización dual en PDF -->
+                <div class="image-wrapper image-wrapper-dual" style="display: flex; flex-direction: column; gap: 10px; padding: 10px; background-color: #E8EDF2;">
+                    <img src="dashboard.png" alt="Dashboard TechNova" style="height: 48%; width: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="api_info.png" alt="Validación API Info" style="height: 48%; width: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 11: Business Analysis -->
+<div class="slide-container dark-slide" id="slide11">
+    <div class="bg-blob-2"></div>
+    <h2 class="slide-title">Viabilidad de la PoC y Análisis Financiero</h2>
+    <div class="content-area">
+        <div class="highlight-numbers-layout">
+            <div class="number-block">
+                <div class="number">OPEX</div>
+                <div class="number-label">Modelo Financiero</div>
+                <p class="number-desc">Transición de CAPEX a OPEX, pagando por el consumo real con escalabilidad elástica.</p>
+            </div>
+            <div class="number-block">
+                <div class="number">99.9%</div>
+                <div class="number-label">Uptime Resiliente</div>
+                <p class="number-desc">Adopción de servicios gestionados que erradican el downtime y las pérdidas por caídas.</p>
+            </div>
+            <div class="number-block">
+                <div class="number">0</div>
+                <div class="number-label">Gestión HW</div>
+                <p class="number-desc">Eliminación total del mantenimiento de hardware, liberando al equipo TI para el negocio.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 12: Roadmap -->
+<div class="slide-container" id="slide12">
+    <div class="bg-blob-1"></div>
+    <h2 class="slide-title">Próximos Pasos: Evolución Cloud-Native</h2>
+    <div class="content-area">
+        <div class="diagram-layout">
+            <div class="text-column">
+                <h3 style="color: #48A9A6; font-size: 20px; margin-bottom: 20px;"><i class="fa-solid fa-rocket"></i> Alineación al AWS Well-Architected</h3>
+                <ul>
+                    <li><i class="fa-solid fa-1"></i> <strong>Escalabilidad Serverless:</strong> Migrar contenedores hacia AWS Fargate (ECS) para un Auto Scaling real.</li>
+                    <li><i class="fa-solid fa-2"></i> <strong>Alta Disponibilidad:</strong> Implementar Amazon Aurora Multi-AZ para replicación síncrona.</li>
+                    <li><i class="fa-solid fa-3"></i> <strong>Caché y Seguridad:</strong> CloudFront/S3 con protección DDoS mediante AWS WAF.</li>
+                </ul>
+            </div>
+            <div class="image-column">
+                <div class="diagram-wrapper">
+                    <img src="Diagrama_Final.svg" alt="Arquitectura Evolutiva Cloud Native">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 13: Conclusion -->
+<div class="slide-container dark-slide" id="slide13">
+    <div class="bg-blob-1"></div>
+    <div class="bg-blob-2"></div>
+    <div class="content-area">
+        <div class="quote-layout">
+            <blockquote>"La Prueba de Concepto demuestra que AWS es la solución definitiva para erradicar el tiempo de inactividad de TechNova y asegurar el crecimiento sostenible del negocio."</blockquote>
+            <cite>RECOMENDACIÓN FINAL DEL ARQUITECTO</cite>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const eventos = ['Promo Verano', 'Día Madre', 'Cyber (D1)', 'Cyber (D2)', 'Flash Sale', 'Aniversario', 'Black Friday', 'Cyber Mon', 'Navidad'];
+        const horasDowntime = [1.0, 0.75, 2.5, 1.25, 1.0, 0.75, 3.0, 2.0, 1.75];
+
+        const impactoAcumulado = [];
+        let acumulado = 0;
+        horasDowntime.forEach(horas => {
+            acumulado += (horas * 3);
+            impactoAcumulado.push(acumulado);
+        });
+
+        const ctx = document.getElementById('downtimeChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: eventos,
+                datasets: [
+                    {
+                        label: 'Pérdida Acumulada (%)',
+                        type: 'line',
+                        data: impactoAcumulado,
+                        borderColor: '#dc3545',
+                        backgroundColor: '#dc3545',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#F3F0DF',
+                        pointBorderColor: '#dc3545',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: false,
+                        yAxisID: 'y1',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Downtime (Horas)',
+                        type: 'bar',
+                        data: horasDowntime,
+                        backgroundColor: 'rgba(72,169,166, 0.8)',
+                        borderColor: '#48A9A6',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#F3F0DF',
+                            font: { family: "'DM Sans', sans-serif", size: 11, weight: '500' },
+                            usePointStyle: true,
+                            boxWidth: 8
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false, color: 'rgba(243,240,223,0.1)' },
+                        ticks: { color: '#8A9AAB', font: { family: "'DM Sans', sans-serif", size: 10 } }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Horas Caída', font: { family: "'DM Sans', sans-serif", weight: 'bold', size: 10 }, color: '#48A9A6' },
+                        grid: { color: 'rgba(243,240,223,0.1)' },
+                        ticks: { color: '#48A9A6', font: { size: 10 } }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Pérdida (%)', font: { family: "'DM Sans', sans-serif", weight: 'bold', size: 10 }, color: '#dc3545' },
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#dc3545', font: { size: 10 }, callback: function(value) { return value + '%'; } }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
